@@ -1,4 +1,5 @@
-import {compareAsc, differenceInSeconds, format, isAfter, isBefore} from 'date-fns';
+import {compareAsc, differenceInMinutes, format, isAfter, isBefore} from 'date-fns';
+import {convertToTimeZone} from 'date-fns-timezone';
 import {FullCalendar, parseICS} from 'ical';
 import axios from 'axios';
 
@@ -39,16 +40,19 @@ const main = async (): Promise<void> => {
   const formatedICalInDec = objectToArray(parseICS(ical))
     .filter(c => isBefore(c.start, new Date(2021, 0)) && isAfter(c.start, new Date(2020, 11)))
     .sort((a, b) => compareAsc(a.start, b.start));
-  const numOfDays = [...new Set(formatedICalInDec.map(c => format(c.start, 'd')))].length;
+  const numOfDays = [
+    ...new Set(
+      formatedICalInDec
+        .filter(c => 30 <= differenceInMinutes(c.end, c.start))
+        // 朝4時基準なので +5:00 で日付を計算する
+        .map(c => format(convertToTimeZone(c.start, {timeZone: 'Asia/Tashkent'}), 'd')),
+    ),
+  ].length;
+  const mins = formatedICalInDec.map(c => differenceInMinutes(c.end, c.start)).reduce((prev, cur) => prev + cur);
   // console.log(JSON.stringify(formatedICalInDec));
   // eslint-disable-next-line no-irregular-whitespace
   console.log(`配信日数　　：${numOfDays}日`);
-  console.log(`累計配信分数：${differenceInSeconds(formatedICalInDec[0].end, formatedICalInDec[0].start)}日`);
-  console.log(
-    `累計配信分数：${formatedICalInDec
-      .map(c => differenceInSeconds(c.end, c.start))
-      .reduce((prev, cur) => prev + cur)}分`,
-  );
+  console.log(`累計配信時間：${Math.floor(mins / 60)}時間${mins % 60}分`);
 };
 
 main().then(

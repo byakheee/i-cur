@@ -33,6 +33,8 @@ const genMonthlyReport = (year: number, month: number, iCal: ICal[]): Report => 
   const formatedICal = iCal
     .filter(c => isBefore(c.start, new Date(year, month)) && isAfter(c.start, new Date(year, month - 1)))
     .sort((a, b) => compareAsc(a.start, b.start));
+  if (formatedICal.length === 0) throw new Error("No data exist.");
+  
   const numOfDays = [
     ...new Set(
       formatedICal
